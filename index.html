@@ -224,11 +224,11 @@ document.dispatchEvent(new Event('firebase-ready'));
           <table id="main-table">
             <colgroup>
               <col style="width:130px"><col style="width:75px"><col style="width:55px">
-              <col style="width:60px"><col style="width:105px"><col style="width:90px"><col style="width:90px">
+              <col style="width:60px"><col style="width:105px"><col style="width:90px"><col style="width:90px"><col style="width:70px">
             </colgroup>
             <thead><tr>
               <th>企業名</th><th>業界</th><th>初任給</th>
-              <th>志望度</th><th>ステータス</th><th>直近締め切り</th><th>本選考締め切り</th>
+              <th>志望度</th><th>ステータス</th><th>インターン締切</th><th>本選考締切</th><th>マイページ</th>
             </tr></thead>
             <tbody id="tbl-body"></tbody>
           </table>
@@ -508,9 +508,9 @@ function renderTable(){
     const tr=document.createElement('tr');
     tr.className='row-click'+(currentId===e.id?' active-row':'');
     const bs=getBadgeStyle(statuses,e.status);
-    const nd=nearestDeadline(e);
-    const du=nd?daysUntil(nd):null;
-    const dlHtml=nd?`<span class="${du!==null&&du<=7?'dl-near':''}">${fmtD(nd)}${du!==null&&du>=0?' ('+du+'日)':''}</span>`:'—';
+    const mpUrls=(e.mypageUrls||[]).filter(u=>u&&u.startsWith('http'));
+    const mpCell=mpUrls.length?mpUrls.map((u,i)=>'<a href="'+u+'" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:11px;background:#EEEDFE;color:#3C3489;border:1px solid #AFA9EC;text-decoration:none;margin:1px">🔗'+(mpUrls.length>1?i+1:'')+'</a>').join(''):'—';
+    const dlHtml=e.internDeadline?`<span class="${daysUntil(e.internDeadline)!==null&&daysUntil(e.internDeadline)<=7?'dl-near':''}">${fmtD(e.internDeadline)}</span>`:'—';
     const honDl=e.honDeadline?fmtD(e.honDeadline):'—';
     tr.innerHTML=`
       <td><div class="cell-view" style="font-weight:600">${e.name}</div></td>
@@ -520,6 +520,7 @@ function renderTable(){
       <td><div class="cell-view"><span class="badge" style="${bs}">${e.status}</span></div></td>
       <td><div class="cell-view">${dlHtml}</div></td>
       <td><div class="cell-view" style="color:#A32D2D;font-weight:${e.honDeadline?'600':'400'}">${honDl}</div></td>
+      <td><div class="cell-view">${(e.mypageUrls&&e.mypageUrls.filter(u=>u&&u.startsWith('http')).length)?e.mypageUrls.filter(u=>u&&u.startsWith('http')).map((u,i)=>`<a href="${u}" target="_blank" style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:11px;background:#EEEDFE;color:#3C3489;border:1px solid #AFA9EC;text-decoration:none;margin:1px" onclick="event.stopPropagation()">🔗${e.mypageUrls.filter(u=>u&&u.startsWith('http')).length>1?i+1:''}</a>`).join(''):'—'}</div></td>
     `;
     tr.addEventListener('click',()=>openDetail(e.id));
     tbody.appendChild(tr);
