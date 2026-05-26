@@ -1,5 +1,5 @@
-const CACHE = 'shukatsu-v5';
-const FILES = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'shukatsu-v6';
+const FILES = ['/', '/index_3.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
