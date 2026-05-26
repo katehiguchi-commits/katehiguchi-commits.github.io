@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>就活管理</title>
+<meta name="theme-color" content="#7F77DD">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="就活管理">
+<link rel="manifest" href="manifest.json">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans',sans-serif;background:#f5f4f0;color:#1a1a1a;font-size:14px;height:100%;overflow:hidden}
+html{height:100%}
+/* layout */
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.8rem 1.5rem;background:#fff;border-bottom:1px solid #e0dfd8;flex-shrink:0;flex-wrap:wrap;gap:10px}
+.header-title{font-size:20px;font-weight:600;display:flex;align-items:center;gap:8px}
+.tabs{display:flex;gap:4px;background:#e8e7e3;border-radius:10px;padding:4px}
+.tab{padding:6px 16px;font-size:13px;cursor:pointer;border:none;background:none;color:#666;border-radius:7px;transition:all .15s}
+.tab.active{background:#fff;color:#1a1a1a;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tab:hover:not(.active){background:rgba(255,255,255,.5)}
+.main{display:flex;flex:1;overflow:hidden}
+/* list pane */
+.list-pane{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:1.2rem 1.5rem;min-width:0}
+/* detail pane */
+.detail-pane{width:420px;flex-shrink:0;border-left:1px solid #e0dfd8;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;transition:width .2s;display:flex;flex-direction:column}
+.detail-pane.closed{width:0;overflow:hidden;border:none}
+.detail-pane.closed *{display:none}
+/* section tabs */
+.section{display:none}.section.active{display:block}
+/* summary cards */
+.summary-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.2rem}
+.s-card{border-radius:10px;padding:12px 16px;border:1px solid rgba(0,0,0,.08)}
+.s-card .lbl{font-size:10px;font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}
+.s-card .val{font-size:26px;font-weight:600}
+.s-card.cp{background:#EEEDFE;border-color:#AFA9EC}.s-card.cp .lbl{color:#534AB7}.s-card.cp .val{color:#3C3489}
+.s-card.ct{background:#E1F5EE;border-color:#5DCAA5}.s-card.ct .lbl{color:#0F6E56}.s-card.ct .val{color:#085041}
+.s-card.ca{background:#FAEEDA;border-color:#EF9F27}.s-card.ca .lbl{color:#854F0B}.s-card.ca .val{color:#633806}
+.s-card.cc{background:#FAECE7;border-color:#F0997B}.s-card.cc .lbl{color:#993C1D}.s-card.cc .val{color:#712B13}
+/* toolbar */
+.toolbar{display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+.toolbar input[type=text]{flex:1;min-width:130px}
+input[type=text],input[type=number],input[type=date],input[type=url],input[type=password],select,textarea{
+  height:34px;padding:0 9px;border:1px solid #d0cfc8;border-radius:7px;font-size:13px;
+  background:#fff;color:#1a1a1a;outline:none;font-family:inherit;transition:border-color .15s;width:100%}
+textarea{height:auto;padding:7px 9px;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:#7F77DD;box-shadow:0 0 0 3px rgba(127,119,221,.15)}
+select{cursor:pointer;padding-right:26px;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23888' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center}
+.btn{padding:0 13px;height:34px;font-size:13px;cursor:pointer;border:1px solid #d0cfc8;border-radius:7px;
+  background:#fff;color:#1a1a1a;display:inline-flex;align-items:center;gap:5px;font-family:inherit;transition:all .15s;white-space:nowrap}
+.btn:hover{background:#f0efe9;border-color:#b0afaa}
+.btn:active{transform:scale(.98)}
+.btn-accent{background:#7F77DD;color:#fff;border-color:#534AB7;font-weight:500}
+.btn-accent:hover{background:#6b63c8}
+.btn-sm{height:28px;padding:0 9px;font-size:12px;border-radius:6px}
+.btn-danger{color:#A32D2D;border-color:#F09595}
+.btn-danger:hover{background:#FCEBEB}
+.btn-icon{width:28px;height:28px;padding:0;justify-content:center;border-radius:6px}
+/* table */
+.tbl-wrap{overflow-x:auto;border:1px solid #dddcd5;border-radius:12px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+th{background:#f5f4f0;color:#888;font-weight:600;font-size:11px;padding:9px 11px;text-align:left;
+  border-bottom:1px solid #dddcd5;white-space:nowrap;text-transform:uppercase;letter-spacing:.05em;user-select:none}
+td{padding:0;border-bottom:1px solid #eeeee8;color:#1a1a1a;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.active-row td{background:#f0effe !important}
+.cell-view{padding:8px 11px;min-height:38px;display:flex;align-items:center;flex-wrap:wrap;gap:3px;cursor:pointer}
+.cell-view:hover{background:rgba(127,119,221,.06);border-radius:4px}
+tr.active-row .cell-view:hover{background:rgba(127,119,221,.1)}
+.row-click{cursor:pointer}
+/* badges */
+.badge{display:inline-block;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap;border:1px solid transparent}
+.star-cell{color:#e8a020;font-size:14px;letter-spacing:1px}
+.dl-near{color:#A32D2D;font-weight:600}
+.url-chip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:5px;font-size:11px;margin:1px;border:1px solid;text-decoration:none;font-weight:500}
+.url-chip.mypage{background:#EEEDFE;color:#3C3489;border-color:#AFA9EC}
+.url-chip.iurl{background:#E1F5EE;color:#085041;border-color:#9FE1CB}
+.url-chip:hover{opacity:.8}
+/* detail pane styles */
+.dp-header{padding:1rem 1.25rem .8rem;border-bottom:1px solid #eeeee8;position:sticky;top:0;background:#fff;z-index:10}
+.dp-company-name{font-size:17px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.dp-close{margin-left:auto;background:none;border:none;cursor:pointer;font-size:18px;color:#aaa;line-height:1;padding:2px 6px;border-radius:4px}
+.dp-close:hover{color:#333;background:#f0efe9}
+.dp-body{padding:1rem 1.25rem;display:flex;flex-direction:column;gap:1rem}
+.dp-section{display:flex;flex-direction:column;gap:6px}
+.dp-section-title{font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.06em;padding-bottom:4px;border-bottom:1px solid #f0efe8;margin-bottom:2px}
+.dp-row{display:flex;flex-direction:column;gap:3px}
+.dp-row label{font-size:11px;color:#888;font-weight:500}
+.dp-row input,.dp-row select,.dp-row textarea{font-size:13px}
+.dp-2col{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dp-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.star-select{display:flex;gap:3px}
+.star-btn{font-size:20px;cursor:pointer;color:#ddd;background:none;border:none;padding:0 1px;line-height:1;transition:color .1s}
+.star-btn.on{color:#e8a020}
+.star-btn:hover{color:#e8a020}
+/* progress bar */
+.progress-wrap{margin:2px 0}
+.progress-steps{display:flex;gap:3px;flex-wrap:wrap}
+.pstep{padding:3px 8px;border-radius:5px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid #e0dfd8;background:#f5f4f0;color:#888;transition:all .15s;white-space:nowrap}
+.pstep.done{background:#EEEDFE;color:#3C3489;border-color:#AFA9EC}
+.pstep.current{background:#7F77DD;color:#fff;border-color:#534AB7}
+/* period blocks */
+.period-block{background:#f8f8f5;border:1px solid #e0dfd8;border-radius:8px;padding:10px 12px;margin-bottom:6px}
+.period-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.period-label-row span{font-size:11px;font-weight:600;color:#888}
+.period-dates{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.period-dates input[type=date]{flex:1;min-width:110px;height:30px;font-size:12px}
+.period-dates span{font-size:12px;color:#888}
+.period-lbl-inp{height:28px;font-size:12px;margin-bottom:6px}
+.multi-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.multi-row input{flex:1;height:30px;font-size:12px}
+.multi-list{display:flex;flex-direction:column}
+.pw-wrap{position:relative;display:flex;align-items:center}
+.pw-wrap input{padding-right:34px}
+.pw-toggle{position:absolute;right:7px;cursor:pointer;color:#888;font-size:12px;background:none;border:none;height:22px;display:flex;align-items:center}
+.pw-toggle:hover{color:#534AB7}
+.dp-save-bar{padding:.8rem 1.25rem;border-top:1px solid #eeeee8;position:sticky;bottom:0;background:#fff;display:flex;gap:8px;justify-content:flex-end}
+/* info mini cards */
+.info-chips{display:flex;flex-wrap:wrap;gap:6px}
+.info-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500;background:#f5f4f0;border:1px solid #e0dfd8;color:#555}
+/* calendar */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;position:relative}
+.cal-nav{display:flex;align-items:center;gap:10px}
+.cal-title{font-size:17px;font-weight:600}
+.cal-legend{display:flex;gap:8px;flex-wrap:wrap}
+.cal-grid-labels{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+.cal-dl{text-align:center;font-size:12px;color:#888;padding:5px 0;font-weight:600}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-cell{min-height:80px;border:1.5px solid #cccac0;border-radius:8px;padding:5px 7px;background:#fff}
+.cal-cell.other{opacity:.35;background:#f5f4f0}
+.cal-cell.today{border-color:#7F77DD;border-width:2px;background:#fdfcff}
+.cal-date{font-size:12px;color:#888;margin-bottom:3px;font-weight:600}
+.cal-cell.today .cal-date{color:#534AB7}
+.cal-cell.sun .cal-date{color:#A32D2D}
+.cal-cell.sat .cal-date{color:#185FA5}
+.cal-ev{font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.ev-setsu{background:#E6F1FB;color:#0C447C}
+.ev-intern{background:#E1F5EE;color:#085041}
+.ev-dl{background:#FAECE7;color:#712B13}
+.ev-interview1{background:#FFF3CD;color:#856404}
+.ev-interview2{background:#FFD9A0;color:#7A3E00}
+.ev-interviewf{background:#C0392B;color:#fff}
+.ev-interview{background:#FAEEDA;color:#633806}
+.ev-interview1{background:#FFF3CD;color:#856404}
+.ev-interview2{background:#FFD9A0;color:#7A3E00}
+.ev-interviewf{background:#E8673A;color:#fff}
+.ev-interview3{background:#F0A500;color:#fff}
+.ev-hondl{background:#F7C1C1;color:#791F1F}
+.ev-accept{background:#7F77DD;color:#fff}
+/* settings */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.settings-box{background:#fff;border:1px solid #dddcd5;border-radius:12px;padding:1rem}
+.settings-box h3{font-size:14px;font-weight:600;margin-bottom:12px}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:32px}
+.tag-item{display:inline-flex;align-items:center;gap:4px;padding:4px 11px;border-radius:99px;font-size:12px;font-weight:500;border:1px solid #d0cfc8;background:#f5f4f0}
+.tag-del{cursor:pointer;color:#aaa;font-size:15px;line-height:1}
+.tag-del:hover{color:#A32D2D}
+.add-tag-row{display:flex;gap:6px}
+.add-tag-row input{flex:1}
+/* hint */
+.hint{font-size:11px;color:#aaa;margin-top:6px;text-align:right}
+/* ログイン画面 */
+.login-screen{position:fixed;inset:0;background:#f5f4f0;display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-box{background:#fff;border-radius:16px;padding:2rem;width:360px;max-width:90vw;box-shadow:0 4px 24px rgba(0,0,0,.1);border:1px solid #e0dfd8}
+.login-box h1{font-size:20px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.login-box p{font-size:13px;color:#888;margin-bottom:1.5rem}
+.login-form{display:flex;flex-direction:column;gap:10px}
+.login-form input{height:40px;padding:0 12px;border:1px solid #d0cfc8;border-radius:8px;font-size:14px;font-family:inherit;outline:none}
+.login-form input:focus{border-color:#7F77DD;box-shadow:0 0 0 3px rgba(127,119,221,.15)}
+.login-btn{height:40px;background:#7F77DD;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit}
+.login-btn:hover{background:#6b63c8}
+.login-switch{text-align:center;font-size:12px;color:#888;margin-top:8px}
+.login-switch a{color:#7F77DD;cursor:pointer;text-decoration:none}
+.login-error{color:#A32D2D;font-size:12px;text-align:center;min-height:16px}
+.user-bar{display:flex;align-items:center;gap:8px;font-size:12px;color:#888}
+.user-bar button{font-size:12px;padding:4px 10px;height:auto}
+</style>
+<script>
+
+</script>
+</head>
+<body>
+<div class="app" style="display:none">
+  <div class="topbar">
+    <div class="header-title">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7F77DD" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      就活管理
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('list')">企業</button>
+      <button class="tab" onclick="switchTab('calendar')">カレンダー</button>
+      <button class="tab" onclick="switchTab('settings')">設定</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- LIST TAB -->
+    <div class="list-pane">
+      <div id="tab-list" class="section active">
+        <div class="summary-cards" id="summary-cards"></div>
+        <div class="toolbar">
+          <input type="text" id="search" placeholder="企業名・業界で検索...">
+          <select id="filter-status" style="width:auto;min-width:140px"><option value="">すべてのステータス</option></select>
+          <select id="filter-industry" style="width:auto;min-width:105px"><option value="">業界すべて</option></select>
+          <button class="btn btn-accent" onclick="openNewEntry()">＋ 企業を追加</button>
+      <button class="btn" onclick="exportData()" title="データをエクスポート" style="padding:0 10px">📤</button>
+      <label class="btn" title="データをインポート" style="padding:0 10px;cursor:pointer">📥<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+        </div>
+        <div class="tbl-wrap">
+          <table id="main-table">
+            <colgroup>
+              <col style="width:130px"><col style="width:75px"><col style="width:55px">
+              <col style="width:60px"><col style="width:105px"><col style="width:90px"><col style="width:90px"><col style="width:70px">
+            </colgroup>
+            <thead><tr>
+              <th>企業名</th><th>業界</th><th>初任給</th>
+              <th>志望度</th><th>ステータス</th><th>インターン締切</th><th>本選考締切</th><th>マイページ</th>
+            </tr></thead>
+            <tbody id="tbl-body"></tbody>
+          </table>
+        </div>
+        <p class="hint">💡 行をクリックして詳細を編集</p>
+      </div>
+      <div id="tab-calendar" class="section">
+        <div class="cal-header">
+          <div class="cal-nav">
+            <button class="btn" onclick="changeMonth(-1)">&#8249;</button>
+            <span class="cal-title" id="cal-title"></span>
+            <button class="btn" onclick="changeMonth(1)">&#8250;</button>
+          </div>
+          <div>
+            <button onclick="toggleLegend(this)" style="font-size:12px;padding:4px 12px;border:1px solid #d0cfc8;border-radius:7px;background:#fff;cursor:pointer;color:#555">凡例 ▾</button>
+          </div>
+        </div>
+        <div class="cal-grid-labels" id="cal-day-labels"></div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+      <div id="tab-settings" class="section">
+        <div class="settings-grid">
+          <div class="settings-box">
+            <h3>業界</h3>
+            <div class="tag-list" id="industry-tags"></div>
+            <div class="add-tag-row"><input type="text" id="new-industry" placeholder="新しい業界..."><button class="btn btn-accent btn-sm" onclick="addIndustry()">追加</button></div>
+          </div>
+          <div class="settings-box">
+            <h3>ステータス</h3>
+            <div class="tag-list" id="status-tags"></div>
+            <div class="add-tag-row"><input type="text" id="new-status" placeholder="新しいステータス..."><button class="btn btn-accent btn-sm" onclick="addStatus()">追加</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETAIL PANE -->
+    <div class="detail-pane closed" id="detail-pane">
+      <div class="dp-header">
+        <div class="dp-company-name">
+          <span id="dp-name-display">—</span>
+          <button class="dp-close" onclick="closeDetail()">✕</button>
+        </div>
+        <div id="dp-status-badge"></div>
+      </div>
+      <div class="dp-body" id="dp-body"></div>
+      <div class="dp-save-bar">
+        <button class="btn btn-danger btn-sm" onclick="deleteCurrentEntry()">削除</button>
+        <span id="autosave-indicator" style="font-size:11px;color:#aaa;margin-right:auto;display:flex;align-items:center;gap:4px"></span>
+        <button class="btn btn-sm" onclick="closeDetail()">閉じる</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BADGE_COLORS=[
+  {bg:'#EEEDFE',color:'#3C3489',border:'#AFA9EC'},
+  {bg:'#E1F5EE',color:'#085041',border:'#5DCAA5'},
+  {bg:'#FAEEDA',color:'#633806',border:'#EF9F27'},
+  {bg:'#FAECE7',color:'#712B13',border:'#F0997B'},
+  {bg:'#E6F1FB',color:'#0C447C',border:'#85B7EB'},
+  {bg:'#FBEAF0',color:'#72243E',border:'#ED93B1'},
+  {bg:'#EAF3DE',color:'#27500A',border:'#97C459'},
+  {bg:'#F1EFE8',color:'#444441',border:'#B4B2A9'},
+];
+const PROCESS_STEPS=['ES提出','筆記試験','一次面接','二次面接','三次面接','最終面接','内定'];
+const INIT_INDUSTRIES=['IT','ITコンサル','コンサルティング','銀行','化学','医療機器','重工業','機械','電機','航空宇宙','素材','エネルギー','商社','その他'];
+const INIT_STATUSES=['応募前','説明会済','ES提出済','インターン提出済','インターン参加済','一次通過','二次通過','最終面接済','内定','見送り'];
+
+let entries=[], industries=[...INIT_INDUSTRIES], statuses=[...INIT_STATUSES];
+let currentId=null;
+const now=new Date();
+let calYear=now.getFullYear(), calMonth=now.getMonth();
+
+function getBadgeStyle(list,val){
+  const i=list.indexOf(val);
+  const c=BADGE_COLORS[(i>=0?i:0)%BADGE_COLORS.length];
+  return 'background:'+c.bg+';color:'+c.color+';border-color:'+c.border;
+}
+function stars(n){return '★'.repeat(n)+'☆'.repeat(5-n);}
+function fmtD(d){if(!d)return'—';const p=d.split('-');return p[1]+'/'+p[2];}
+function fmtSalary(s){if(!s||s===0)return'—';return(s/10000).toFixed(1)+'万';}
+function fmtPeriod(p){if(!p||!p.start)return'';const s=fmtD(p.start);if(!p.end||p.end===p.start)return(p.label?p.label+' ':'')+s;return(p.label?p.label+' ':'')+s+'〜'+fmtD(p.end);}
+function daysUntil(d){if(!d)return null;const diff=new Date(d)-new Date(now.toDateString());return Math.ceil(diff/86400000);}
+
+function nearestDeadline(e){
+  const cands=[e.internDeadline, e.esDeadline].filter(Boolean);
+  if(!cands.length)return null;
+  return cands.sort()[0];
+}
+
+function getInitEntries(){return [
+  {id:0,name:'構造計画研究所HD',industry:'ITコンサル',salary:290000,status:'応募前',star:0,
+   setsumeikai:'2026-04-22',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'SE・コンサル',examType:'SPI',
+   mypageUrls:[],loginId:'KK00042481',loginPw:'Ruis1211@',obvisit:[],memo:'',processStep:''},
+  {id:1,name:'三菱UFJ銀行',industry:'銀行',salary:310000,status:'応募前',star:0,
+   setsumeikai:'2026-04-17',internPeriods:[],internDeadline:'2026-05-18',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'総合職',examType:'玉手箱',
+   mypageUrls:['https://www.mypage.bk.mufg.jp/mufgbank2028/applicant/top/index/pra/bhhgdjfeai-hihe'],loginId:'280401493',loginPw:'Ruis1211@',obvisit:[],memo:'',processStep:''},
+  {id:2,name:'日鉄エンジニアリング',industry:'重工業',salary:335000,status:'応募前',star:0,
+   setsumeikai:'2026-05-12',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'技術職',examType:'',
+   mypageUrls:[],loginId:'i6f1048108',loginPw:'Ruis1211@',obvisit:[],memo:'',processStep:''},
+  {id:3,name:'DAICEL',industry:'化学',salary:292100,status:'応募前',star:0,
+   setsumeikai:'2026-05-22',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'大阪',jobType:'技術職',examType:'SPI',
+   mypageUrls:['https://axol.jp/zw/s/daicel_28/mypage/com/1'],loginId:'g4b1041114',loginPw:'Ruis1211@',obvisit:[],memo:'',processStep:''},
+  {id:4,name:'OLYMPUS',industry:'医療機器',salary:313200,status:'応募前',star:0,
+   setsumeikai:'2026-06-01',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'技術職',examType:'',
+   mypageUrls:[],loginId:'OL000037',loginPw:'kate1107',obvisit:[],memo:'',processStep:''},
+  {id:5,name:'NEC',industry:'電機',salary:320800,status:'応募前',star:0,
+   setsumeikai:'',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'SE・技術職',examType:'SPI',
+   mypageUrls:['https://axol.jp/zw/s/necgroup_28/mypage/login'],loginId:'p3a1002457',loginPw:'Ruis1211@',obvisit:[],memo:'',processStep:''},
+  {id:6,name:'三菱重工業',industry:'重工業',salary:295000,status:'応募前',star:0,
+   setsumeikai:'2026-05-26',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'技術職',examType:'SPI',
+   mypageUrls:['https://mypage.3030.i-webs.jp/mhi2028/applicant/entry/complete/'],loginId:'MHI000326',loginPw:'Ruis1211@',obvisit:[],memo:'',processStep:''},
+  {id:7,name:'HITACHI',industry:'電機',salary:0,status:'応募前',star:0,
+   setsumeikai:'2026-05-22',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'技術職',examType:'',
+   mypageUrls:[],loginId:'28102816',loginPw:'Kate1107',obvisit:[],memo:'',processStep:''},
+  {id:8,name:'FANUC',industry:'機械',salary:289000,status:'応募前',star:0,
+   setsumeikai:'',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'山梨',jobType:'技術職',examType:'',
+   mypageUrls:[],loginId:'',loginPw:'',obvisit:[],memo:'',processStep:''},
+  {id:9,name:'デロイト トーマツ',industry:'コンサルティング',salary:0,status:'応募前',star:0,
+   setsumeikai:'',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'コンサルタント',examType:'',
+   mypageUrls:[],loginId:'g9e1028254',loginPw:'Kate1107',obvisit:[],memo:'',processStep:''},
+  {id:10,name:'川崎重工業',industry:'重工業',salary:295000,status:'応募前',star:0,
+   setsumeikai:'',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'技術職',examType:'SPI',
+   mypageUrls:['https://axol.jp/zw/s/khi_28/mypage/letter'],loginId:'u8k1108509',loginPw:'Ruis1211@',obvisit:[],memo:'',processStep:''},
+  {id:11,name:'中外炉工業',industry:'その他',salary:304000,status:'応募前',star:0,
+   setsumeikai:'',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'大阪',jobType:'技術職',examType:'',
+   mypageUrls:[],loginId:'28500035',loginPw:'Ruis1211@',obvisit:[],memo:'',processStep:''},
+  {id:12,name:'Simplex',industry:'IT',salary:0,status:'応募前',star:0,
+   setsumeikai:'',internPeriods:[],internDeadline:'2026-05-26',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'ITコンサル',examType:'',
+   mypageUrls:[],loginId:'S28804657',loginPw:'Ruis1211@',obvisit:[],memo:'5月26日13:00まで',processStep:''},
+  {id:13,name:'ケンブリッジTP',industry:'コンサルティング',salary:0,status:'応募前',star:0,
+   setsumeikai:'2026-04-28',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'コンサルタント',examType:'',
+   mypageUrls:[],loginId:'HR00008892',loginPw:'Ruis631295%',obvisit:[],memo:'',processStep:''},
+  {id:14,name:'フジクラ',industry:'素材',salary:315000,status:'応募前',star:0,
+   setsumeikai:'',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'技術職',examType:'',
+   mypageUrls:[],loginId:'q4y1017997',loginPw:'ruis1211@',obvisit:[],memo:'',processStep:''},
+  {id:15,name:'JFEエンジニアリング',industry:'重工業',salary:0,status:'ES提出済',star:0,
+   setsumeikai:'',internPeriods:[],internDeadline:'2026-06-11',internUrls:['https://axol.jp/zw/s/jfe-eng_28/mypage/com/4'],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'技術職',examType:'SPI',
+   mypageUrls:['https://axol.jp/zw/s/jfe-eng_28/mypage/top'],loginId:'g1k1052016',loginPw:'ruis1211@',obvisit:[],memo:'6月11日AM8:00締め',processStep:''},
+  {id:16,name:'PHC',industry:'医療機器',salary:311000,status:'応募前',star:0,
+   setsumeikai:'2026-05-08',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'技術職',examType:'',
+   mypageUrls:['https://ats-entry.hito-link.jp/sites/phc/event/events'],loginId:'PHC20017',loginPw:'JMw55xmJ',obvisit:[],memo:'',processStep:''},
+  {id:17,name:'Abeam Consulting',industry:'コンサルティング',salary:0,status:'応募前',star:0,
+   setsumeikai:'',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'コンサルタント',examType:'',
+   mypageUrls:[],loginId:'AB403668',loginPw:'ruis1211@',obvisit:[],memo:'',processStep:''},
+  {id:18,name:'三菱マテリアル',industry:'素材',salary:0,status:'応募前',star:0,
+   setsumeikai:'',internPeriods:[],internDeadline:'',internUrls:[],
+   esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+   location:'東京',jobType:'技術職',examType:'',
+   mypageUrls:[],loginId:'MMC0075755',loginPw:'Ruis631295%',obvisit:[],memo:'',processStep:''},
+];}
+
+async function loadData(){
+  try{const d=localStorage.getItem('sk6_entries');if(d)entries=JSON.parse(d);else entries=[];}catch{entries=[];}
+  try{const d=localStorage.getItem('sk6_industries');if(d)industries=JSON.parse(d);}catch{}
+  try{const d=localStorage.getItem('sk6_statuses');if(d)statuses=JSON.parse(d);}catch{}
+  if(window.loadFromSupabase){
+    const cloud = await loadFromSupabase();
+    if(cloud){
+      if(cloud.entries)entries=cloud.entries;
+      if(cloud.industries)industries=cloud.industries;
+      if(cloud.statuses)statuses=cloud.statuses;
+      localStorage.setItem('sk6_entries',JSON.stringify(entries));
+      localStorage.setItem('sk6_industries',JSON.stringify(industries));
+      localStorage.setItem('sk6_statuses',JSON.stringify(statuses));
+    } else {
+      // 新規ユーザーは完全に空から始める
+      entries=[];
+      industries=[...INIT_INDUSTRIES];
+      statuses=[...INIT_STATUSES];
+      localStorage.removeItem('sk6_entries');
+      localStorage.removeItem('sk6_industries');
+      localStorage.removeItem('sk6_statuses');
+    }
+  }
+}
+function saveData(){
+  try{localStorage.setItem('sk6_entries',JSON.stringify(entries));}catch{}
+  try{localStorage.setItem('sk6_industries',JSON.stringify(industries));}catch{}
+  try{localStorage.setItem('sk6_statuses',JSON.stringify(statuses));}catch{}
+  if(window.saveToSupabase) saveToSupabase({entries,industries,statuses});
+}
+function nextId(){return entries.length?Math.max(...entries.map(e=>e.id||0))+1:0;}
+
+function switchTab(t){
+  const names=['list','calendar','settings'];
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',names[i]===t));
+  document.querySelectorAll('.section').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='calendar')renderCalendar();
+  if(t==='settings')renderSettings();
+}
+
+function renderSummary(){
+  const cards=[
+    {l:'企業数',v:entries.length,c:'cp'},
+    {l:'説明会',v:entries.filter(e=>e.setsumeikai).length,c:'ct'},
+    {l:'インターン',v:entries.filter(e=>e.internPeriods&&e.internPeriods.length>0).length,c:'ca'},
+    {l:'内定',v:entries.filter(e=>e.status==='内定').length,c:'cc'},
+  ];
+  document.getElementById('summary-cards').innerHTML=cards.map(c=>`<div class="s-card ${c.c}"><div class="lbl">${c.l}</div><div class="val">${c.v}</div></div>`).join('');
+}
+
+function populateFilters(){
+  const fs=document.getElementById('filter-status'),sv=fs.value;
+  fs.innerHTML='<option value="">すべてのステータス</option>'+statuses.map(s=>`<option value="${s}">${s}</option>`).join('');
+  if(sv)fs.value=sv;
+  const fi=document.getElementById('filter-industry'),iv=fi.value;
+  fi.innerHTML='<option value="">業界すべて</option>'+industries.map(i=>`<option value="${i}">${i}</option>`).join('');
+  if(iv)fi.value=iv;
+}
+
+function renderTable(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const fs=document.getElementById('filter-status').value;
+  const fi=document.getElementById('filter-industry').value;
+  const filtered=entries.filter(e=>{
+    const mq=!q||e.name.toLowerCase().includes(q)||(e.industry||'').toLowerCase().includes(q);
+    return mq&&(!fs||e.status===fs)&&(!fi||e.industry===fi);
+  });
+  const tbody=document.getElementById('tbl-body');
+  tbody.innerHTML='';
+  filtered.forEach(e=>{
+    const tr=document.createElement('tr');
+    tr.className='row-click'+(currentId===e.id?' active-row':'');
+    const bs=getBadgeStyle(statuses,e.status);
+    const mpUrls=(e.mypageUrls||[]).filter(u=>u&&u.startsWith('http'));
+    const mpCell=mpUrls.length?mpUrls.map((u,i)=>'<a href="'+u+'" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:11px;background:#EEEDFE;color:#3C3489;border:1px solid #AFA9EC;text-decoration:none;margin:1px">🔗'+(mpUrls.length>1?i+1:'')+'</a>').join(''):'—';
+    const periodDeadlines=(e.internPeriods||[]).map(p=>p.deadline).filter(d=>d&&d>new Date().toISOString().slice(0,10));
+    const nearestPeriodDl=periodDeadlines.sort()[0]||null;
+    const internDl=nearestPeriodDl||e.internDeadline||null;
+    const dlHtml=internDl?`<span class="${daysUntil(internDl)!==null&&daysUntil(internDl)<=7?'dl-near':''}">${fmtD(internDl)}</span>`:'—';
+    const honDl=e.honDeadline?fmtD(e.honDeadline):'—';
+    tr.innerHTML=`
+      <td><div class="cell-view" style="font-weight:600">${e.name}</div></td>
+      <td><div class="cell-view" style="color:#666">${e.industry||'—'}</div></td>
+      <td><div class="cell-view" style="color:#666">${fmtSalary(e.salary)}</div></td>
+      <td><div class="cell-view star-cell">${'★'.repeat(e.star||0)}</div></td>
+      <td><div class="cell-view"><span class="badge" style="${bs}">${e.status}</span></div></td>
+      <td><div class="cell-view">${dlHtml}</div></td>
+      <td><div class="cell-view" style="color:#A32D2D;font-weight:${e.honDeadline?'600':'400'}">${honDl}</div></td>
+      <td><div class="cell-view">${(e.mypageUrls&&e.mypageUrls.filter(u=>u&&u.startsWith('http')).length)?e.mypageUrls.filter(u=>u&&u.startsWith('http')).map((u,i)=>`<a href="${u}" target="_blank" style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:11px;background:#EEEDFE;color:#3C3489;border:1px solid #AFA9EC;text-decoration:none;margin:1px" onclick="event.stopPropagation()">🔗${e.mypageUrls.filter(u=>u&&u.startsWith('http')).length>1?i+1:''}</a>`).join(''):'—'}</div></td>
+    `;
+    tr.addEventListener('click',()=>openDetail(e.id));
+    tbody.appendChild(tr);
+  });
+  renderSummary();
+}
+
+// ---- DETAIL PANE ----
+function openDetail(id){
+  currentId=id;
+  const e=entries.find(x=>x.id===id);
+  if(!e)return;
+  document.getElementById('detail-pane').classList.remove('closed');
+  document.querySelectorAll('#tbl-body tr').forEach(tr=>tr.classList.remove('active-row'));
+  event&&event.currentTarget&&event.currentTarget.classList.add('active-row');
+  renderDetail(e);
+  // re-highlight
+  document.querySelectorAll('#tbl-body tr').forEach(tr=>{
+    const cells=tr.querySelectorAll('.cell-view');
+    if(cells.length&&cells[0].textContent.trim()===e.name)tr.classList.add('active-row');
+  });
+}
+
+function closeDetail(){
+  document.getElementById('detail-pane').classList.add('closed');
+  document.querySelectorAll('#tbl-body tr').forEach(tr=>tr.classList.remove('active-row'));
+  currentId=null;
+}
+
+function renderDetail(e){
+  document.getElementById('dp-name-display').textContent=e.name;
+  const bs=getBadgeStyle(statuses,e.status);
+  document.getElementById('dp-status-badge').innerHTML=`<span class="badge" style="${bs}">${e.status}</span>`;
+
+  const body=document.getElementById('dp-body');
+  body.innerHTML='';
+
+  // helper builders
+  function sec(title){const d=document.createElement('div');d.className='dp-section';const t=document.createElement('div');t.className='dp-section-title';t.textContent=title;d.appendChild(t);body.appendChild(d);return d;}
+  function row(parent,label,input){const d=document.createElement('div');d.className='dp-row';const l=document.createElement('label');l.textContent=label;d.appendChild(l);d.appendChild(input);parent.appendChild(d);return d;}
+  function inp(type,val,id){const i=document.createElement('input');i.type=type;i.value=val||'';i.id='dp_'+id;return i;}
+  function sel(opts,val,id){const s=document.createElement('select');s.id='dp_'+id;opts.forEach(o=>{const op=document.createElement('option');op.value=o;op.textContent=o;if(o===val)op.selected=true;s.appendChild(op);});return s;}
+  function ta(val,id,rows){const t=document.createElement('textarea');t.rows=rows||2;t.value=val||'';t.id='dp_'+id;return t;}
+
+  // ---- 基本情報 ----
+  const s1=sec('基本情報');
+  const g1=document.createElement('div');g1.className='dp-2col';s1.appendChild(g1);
+  row(g1,'企業名',inp('text',e.name,'name'));
+  row(g1,'業界',sel(['—',...industries],e.industry||'—','industry'));
+  const g2=document.createElement('div');g2.className='dp-3col';s1.appendChild(g2);
+  row(g2,'初任給（円）',inp('number',e.salary,'salary'));
+  row(g2,'勤務地',inp('text',e.location,'location'));
+  row(g2,'職種',inp('text',e.jobType,'jobType'));
+  // star
+  const starRow=document.createElement('div');starRow.className='dp-row';
+  const lbl=document.createElement('label');lbl.textContent='志望度';
+  starRow.appendChild(lbl);
+  const starSel=document.createElement('div');starSel.className='star-select';
+  for(let i=1;i<=5;i++){
+    const b=document.createElement('button');b.className='star-btn'+(i<=(e.star||0)?' on':'');
+    b.textContent='★';b.dataset.v=i;
+    b.onclick=()=>{document.querySelectorAll('.star-btn').forEach((x,j)=>x.classList.toggle('on',j<i));autoSave();};
+    starSel.appendChild(b);
+  }
+  starRow.appendChild(starSel);
+  s1.appendChild(starRow);
+  // status
+  const stRow=document.createElement('div');stRow.className='dp-row';
+  const stLbl=document.createElement('label');stLbl.textContent='ステータス';
+  stRow.appendChild(stLbl);
+  const stSel=sel(statuses,e.status,'status');
+  stSel.onchange=()=>{const bs=getBadgeStyle(statuses,stSel.value);document.getElementById('dp-status-badge').innerHTML=`<span class="badge" style="${bs}">${stSel.value}</span>`;autoSave();};
+  stRow.appendChild(stSel);
+  s1.appendChild(stRow);
+
+  // ---- 選考進捗 ----
+  const s2=sec('選考進捗');
+  const progWrap=document.createElement('div');progWrap.className='progress-wrap';
+  const progSteps=document.createElement('div');progSteps.className='progress-steps';
+  PROCESS_STEPS.forEach(step=>{
+    const b=document.createElement('div');b.className='pstep';b.textContent=step;b.dataset.step=step;
+    b.classList.toggle('current',step===e.processStep);
+    b.onclick=()=>{
+      document.querySelectorAll('.pstep').forEach(x=>{x.classList.remove('current');x.classList.remove('done');});
+      const idx=PROCESS_STEPS.indexOf(step);
+      document.querySelectorAll('.pstep').forEach((x,i)=>{if(i<idx)x.classList.add('done');if(i===idx)x.classList.add('current');});
+      autoSave();
+    };
+    const idx=PROCESS_STEPS.indexOf(step);
+    const curIdx=PROCESS_STEPS.indexOf(e.processStep||'');
+    if(curIdx>=0&&idx<curIdx)b.classList.add('done');
+    progSteps.appendChild(b);
+  });
+  progWrap.appendChild(progSteps);
+  s2.appendChild(progWrap);
+
+  // ---- インターン ----
+  const s3=sec('インターン');
+  const perContainer=document.createElement('div');perContainer.id='dp_intern_periods';s3.appendChild(perContainer);
+  (e.internPeriods||[]).forEach(p=>addPeriodBlock(perContainer,p.start,p.end,p.label,p.deadline,p.memo));
+  const addPBtn=document.createElement('button');addPBtn.className='btn btn-sm';addPBtn.textContent='＋ 期間を追加';
+  addPBtn.onclick=()=>addPeriodBlock(perContainer,'','','');
+  s3.appendChild(addPBtn);
+  const g3=document.createElement('div');g3.className='dp-2col';g3.style.marginTop='8px';s3.appendChild(g3);
+  row(g3,'インターン締め切り',inp('date',e.internDeadline,'internDeadline'));
+  // intern urls
+  const iuRow=document.createElement('div');iuRow.className='dp-row';
+  const iuLbl=document.createElement('label');iuLbl.textContent='インターンエントリーURL';
+  iuRow.appendChild(iuLbl);
+  const iuList=document.createElement('div');iuList.className='multi-list';iuList.id='dp_internUrls';
+  (e.internUrls||[]).forEach(u=>addUrlRow(iuList,u));
+  iuRow.appendChild(iuList);
+  const iuBtn=document.createElement('button');iuBtn.className='btn btn-sm';iuBtn.textContent='＋ URLを追加';
+  iuBtn.onclick=()=>addUrlRow(iuList,'');
+  iuRow.appendChild(iuBtn);
+  s3.appendChild(iuRow);
+
+  // ---- 本選考 ----
+  const s4=sec('本選考');
+  const g4=document.createElement('div');g4.className='dp-2col';s4.appendChild(g4);
+  row(g4,'ESエントリー締め切り',inp('date',e.esDeadline,'esDeadline'));
+  row(g4,'本選考締め切り',inp('date',e.honDeadline,'honDeadline'));
+  // 面接日程
+  const intLbl=document.createElement('label');intLbl.style.cssText='font-size:11px;color:#888;font-weight:500;display:block;margin:6px 0 4px';intLbl.textContent='面接日程';
+  s4.appendChild(intLbl);
+  const intList=document.createElement('div');intList.id='dp_interviews';intList.className='multi-list';
+  (e.interviews||[]).forEach(iv=>addInterviewRow(intList,iv.date,iv.type,iv.memo));
+  s4.appendChild(intList);
+  const intBtn=document.createElement('button');intBtn.className='btn btn-sm';intBtn.textContent='＋ 面接を追加';
+  intBtn.onclick=()=>addInterviewRow(intList,'','','');
+  s4.appendChild(intBtn);
+  const g5=document.createElement('div');g5.className='dp-2col';g5.style.marginTop='8px';s4.appendChild(g5);
+  row(g5,'内定承諾締め切り',inp('date',e.internalDeadline,'internalDeadline'));
+
+  // ---- 筆記試験 ----
+  const s5=sec('筆記試験');
+  const examSel=sel(['','SPI','玉手箱','TG-WEB','CAB','GAB','CUBIC','その他'],e.examType||'','examType');
+  const examRow=document.createElement('div');examRow.className='dp-row';
+  const examLbl=document.createElement('label');examLbl.textContent='試験種類';
+  examRow.appendChild(examLbl);examRow.appendChild(examSel);s5.appendChild(examRow);
+
+  // ---- マイページ ----
+  const s6=sec('マイページ / ログイン');
+  const mpList=document.createElement('div');mpList.className='multi-list';mpList.id='dp_mypageUrls';
+  (e.mypageUrls||[]).forEach(u=>addUrlRow(mpList,u));
+  const mpLblE=document.createElement('label');mpLblE.textContent='マイページURL';mpLblE.style.cssText='font-size:11px;color:#888;font-weight:500;display:block;margin-bottom:4px';
+  s6.appendChild(mpLblE);s6.appendChild(mpList);
+  const mpBtn=document.createElement('button');mpBtn.className='btn btn-sm';mpBtn.textContent='＋ URLを追加';
+  mpBtn.onclick=()=>addUrlRow(mpList,'');s6.appendChild(mpBtn);
+  const g6=document.createElement('div');g6.className='dp-2col';g6.style.marginTop='10px';s6.appendChild(g6);
+  row(g6,'ID / ユーザー名',inp('text',e.loginId,'loginId'));
+  const pwWrap=document.createElement('div');pwWrap.className='pw-wrap';
+  const pwInp=inp('password',e.loginPw,'loginPw');pwWrap.appendChild(pwInp);
+  const pwTog=document.createElement('button');pwTog.className='pw-toggle';pwTog.textContent='👁';
+  pwTog.onclick=()=>{pwInp.type=pwInp.type==='password'?'text':'password';};
+  pwWrap.appendChild(pwTog);
+  const pwRowD=document.createElement('div');pwRowD.className='dp-row';
+  const pwLbl=document.createElement('label');pwLbl.textContent='パスワード';
+  pwRowD.appendChild(pwLbl);pwRowD.appendChild(pwWrap);g6.appendChild(pwRowD);
+
+  // ---- OB/OG訪問 ----
+  const s7=sec('OB / OG訪問');
+  const obList=document.createElement('div');obList.id='dp_obvisit';obList.className='multi-list';
+  (e.obvisit||[]).forEach(v=>addObRow(obList,v.date,v.memo));
+  s7.appendChild(obList);
+  const obBtn=document.createElement('button');obBtn.className='btn btn-sm';obBtn.textContent='＋ 訪問を追加';
+  obBtn.onclick=()=>addObRow(obList,'','');s7.appendChild(obBtn);
+
+  // ---- メモ ----
+  const s8=sec('メモ');
+  const memoRow=document.createElement('div');memoRow.className='dp-row';
+  const memoT=ta(e.memo,'memo',4);memoRow.appendChild(memoT);s8.appendChild(memoRow);
+
+  // ---- 説明会 ----
+  const s9=sec('説明会');
+  const g9=document.createElement('div');g9.className='dp-2col';s9.appendChild(g9);
+  row(g9,'説明会日',inp('date',e.setsumeikai,'setsumeikai'));
+  setTimeout(wireAutoSave,50);
+}
+
+function addPeriodBlock(container,start,end,label,deadline,memo){
+  const n=container.children.length+1;
+  const blk=document.createElement('div');blk.className='period-block';
+  blk.innerHTML=`<div class="period-label-row"><span>期間 ${n}</span><button class="btn btn-sm btn-danger btn-icon" onclick="this.closest('.period-block').remove()">✕</button></div>
+  <input type="text" placeholder="ラベル（例：夏季・1day）" value="${label||''}" class="period-lbl-inp" style="margin-bottom:6px">
+  <div class="period-dates" style="margin-bottom:6px">
+    <input type="date" value="${start||''}" class="period-start"><span>〜</span><input type="date" value="${end||''}" class="period-end">
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
+    <div><label style="font-size:11px;color:#888;display:block;margin-bottom:3px">締め切り</label><input type="date" value="${deadline||''}" class="period-deadline" style="height:28px;font-size:12px"></div>
+    <div><label style="font-size:11px;color:#888;display:block;margin-bottom:3px">メモ</label><input type="text" placeholder="メモ" value="${memo||''}" class="period-memo" style="height:28px;font-size:12px"></div>
+  </div>`;
+  container.appendChild(blk);
+}
+
+function addUrlRow(container,val){
+  const d=document.createElement('div');d.className='multi-row';
+  const i=document.createElement('input');i.type='url';i.placeholder='https://...';i.value=val||'';
+  const b=document.createElement('button');b.className='btn btn-sm btn-danger btn-icon';b.textContent='✕';
+  b.onclick=()=>d.remove();d.appendChild(i);d.appendChild(b);container.appendChild(d);
+}
+
+function addInterviewRow(container,date,type,memo){
+  const d=document.createElement('div');d.className='period-block';
+  d.innerHTML=`<div class="period-label-row"><span>面接</span><button class="btn btn-sm btn-danger btn-icon" onclick="this.closest('.period-block').remove()">✕</button></div>
+  <div class="dp-2col" style="margin-bottom:6px">
+    <input type="date" value="${date||''}" class="iv-date">
+    <select class="iv-type"><option value="">種別</option><option${type==='一次'?' selected':''}>一次</option><option${type==='二次'?' selected':''}>二次</option><option${type==='三次'?' selected':''}>三次</option><option${type==='最終'?' selected':''}>最終</option><option${type==='その他'?' selected':''}>その他</option></select>
+  </div>
+  <input type="text" placeholder="メモ（場所・形式など）" value="${memo||''}" class="iv-memo">`;
+  container.appendChild(d);
+}
+
+function addObRow(container,date,memo){
+  const d=document.createElement('div');d.className='period-block';
+  d.innerHTML=`<div class="period-label-row"><span>OB/OG訪問</span><button class="btn btn-sm btn-danger btn-icon" onclick="this.closest('.period-block').remove()">✕</button></div>
+  <div class="dp-2col">
+    <input type="date" value="${date||''}" class="ob-date">
+    <input type="text" placeholder="メモ（名前・内容など）" value="${memo||''}" class="ob-memo">
+  </div>`;
+  container.appendChild(d);
+}
+
+function getVal(id){const el=document.getElementById('dp_'+id);return el?el.value:'';} 
+let _autoSaveTimer=null;
+function autoSave(){
+  clearTimeout(_autoSaveTimer);
+  const ind=document.getElementById('autosave-indicator');
+  if(ind)ind.textContent='保存中...';
+  _autoSaveTimer=setTimeout(()=>{
+    saveDetail();
+    if(ind)ind.textContent='✓ 保存済み';
+    setTimeout(()=>{if(ind)ind.textContent='';},2000);
+  },600);
+}
+function wireAutoSave(){
+  const body=document.getElementById('dp-body');
+  if(!body)return;
+  body.querySelectorAll('input,select,textarea').forEach(el=>{
+    el.addEventListener('input',autoSave);
+    el.addEventListener('change',autoSave);
+  });
+  // MutationObserver to wire newly added rows (intern periods, interviews, etc)
+  if(window._dpObserver)window._dpObserver.disconnect();
+  window._dpObserver=new MutationObserver(()=>{
+    body.querySelectorAll('input,select,textarea').forEach(el=>{
+      if(!el.dataset.wired){el.dataset.wired='1';el.addEventListener('input',autoSave);el.addEventListener('change',autoSave);}
+    });
+  });
+  window._dpObserver.observe(body,{childList:true,subtree:true});
+}
+function saveDetail(){
+  if(currentId===null)return;
+  const idx=entries.findIndex(x=>x.id===currentId);
+  if(idx<0)return;
+  const e=entries[idx];
+  e.name=getVal('name');
+  e.industry=getVal('industry')==='—'?'':getVal('industry');
+  e.salary=parseInt(getVal('salary'))||0;
+  e.location=getVal('location');
+  e.jobType=getVal('jobType');
+  e.star=[...document.querySelectorAll('.star-btn')].filter(b=>b.classList.contains('on')).length;
+  e.status=getVal('status');
+  e.processStep=[...document.querySelectorAll('.pstep')].find(p=>p.classList.contains('current'))?.dataset.step||'';
+  e.internPeriods=[...document.querySelectorAll('#dp_intern_periods .period-block')].map(b=>({
+    label:b.querySelector('.period-lbl-inp').value.trim(),
+    start:b.querySelector('.period-start').value,
+    end:b.querySelector('.period-end').value,
+    deadline:b.querySelector('.period-deadline').value,
+    memo:b.querySelector('.period-memo').value.trim(),
+  })).filter(p=>p.start);
+  e.internDeadline=getVal('internDeadline');
+  e.internUrls=[...document.querySelectorAll('#dp_internUrls input[type=url]')].map(i=>i.value.trim()).filter(v=>v);
+  e.esDeadline=getVal('esDeadline');
+  e.honDeadline=getVal('honDeadline');
+  e.interviews=[...document.querySelectorAll('#dp_interviews .period-block')].map(b=>({
+    date:b.querySelector('.iv-date').value,
+    type:b.querySelector('.iv-type').value,
+    memo:b.querySelector('.iv-memo').value,
+  })).filter(v=>v.date);
+  e.internalDeadline=getVal('internalDeadline');
+  e.examType=getVal('examType');
+  e.mypageUrls=[...document.querySelectorAll('#dp_mypageUrls input[type=url]')].map(i=>i.value.trim()).filter(v=>v);
+  e.loginId=getVal('loginId');
+  e.loginPw=document.getElementById('dp_loginPw').value;
+  e.obvisit=[...document.querySelectorAll('#dp_obvisit .period-block')].map(b=>({
+    date:b.querySelector('.ob-date').value,
+    memo:b.querySelector('.ob-memo').value,
+  })).filter(v=>v.date);
+  e.setsumeikai=getVal('setsumeikai');
+  e.memo=getVal('memo');
+  entries[idx]=e;
+  saveData();
+  document.getElementById('dp-name-display').textContent=e.name;
+  const bs=getBadgeStyle(statuses,e.status);
+  document.getElementById('dp-status-badge').innerHTML=`<span class="badge" style="${bs}">${e.status}</span>`;
+  populateFilters();renderTable();
+  // re-highlight active row after re-render
+  document.querySelectorAll('#tbl-body tr').forEach(tr=>{
+    const c=tr.querySelector('.cell-view');if(c&&c.textContent.trim()===e.name)tr.classList.add('active-row');
+  });
+}
+
+function openNewEntry(){
+  const newE={id:nextId(),name:'新しい企業',industry:'',salary:0,status:statuses[0]||'応募前',star:0,
+    setsumeikai:'',internPeriods:[],internDeadline:'',internUrls:[],
+    esDeadline:'',honDeadline:'',interviews:[],internalDeadline:'',
+    location:'',jobType:'',examType:'',
+    mypageUrls:[],loginId:'',loginPw:'',obvisit:[],memo:'',processStep:''};
+  entries.push(newE);saveData();populateFilters();renderTable();
+  openDetail(newE.id);
+}
+
+function deleteCurrentEntry(){
+  if(currentId===null)return;
+  const e=entries.find(x=>x.id===currentId);
+  if(!confirm((e?e.name:'この企業')+'を削除しますか？'))return;
+  entries=entries.filter(x=>x.id!==currentId);
+  saveData();closeDetail();populateFilters();renderTable();
+}
+
+// ---- SETTINGS ----
+function renderSettings(){
+  document.getElementById('industry-tags').innerHTML=industries.map((ind,i)=>
+    `<span class="tag-item">${ind}<span class="tag-del" onclick="removeIndustry(${i})">×</span></span>`).join('');
+  document.getElementById('status-tags').innerHTML=statuses.map((s,i)=>{
+    const st=getBadgeStyle(statuses,s);
+    return`<span class="tag-item" style="${st}">${s}<span class="tag-del" onclick="removeStatus(${i})">×</span></span>`;
+  }).join('');
+}
+function addIndustry(){const v=document.getElementById('new-industry').value.trim();if(!v||industries.includes(v))return;industries.push(v);document.getElementById('new-industry').value='';saveData();renderSettings();populateFilters();}
+function removeIndustry(i){industries.splice(i,1);saveData();renderSettings();populateFilters();}
+function addStatus(){const v=document.getElementById('new-status').value.trim();if(!v||statuses.includes(v))return;statuses.push(v);document.getElementById('new-status').value='';saveData();renderSettings();populateFilters();}
+function removeStatus(i){statuses.splice(i,1);saveData();renderSettings();populateFilters();}
+
+// ---- CALENDAR ----
+function changeMonth(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+function dateRange(start,end){
+  const dates=[];const s=new Date(start);const e=end?new Date(end):new Date(start);
+  for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1))dates.push(new Date(d).toISOString().slice(0,10));
+  return dates;
+}
+function renderCalendar(){
+  const months=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  document.getElementById('cal-title').textContent=calYear+'年 '+months[calMonth];
+  document.getElementById('cal-day-labels').innerHTML=['日','月','火','水','木','金','土'].map(d=>`<div class="cal-dl">${d}</div>`).join('');
+  const first=new Date(calYear,calMonth,1).getDay();
+  const last=new Date(calYear,calMonth+1,0).getDate();
+  const prevLast=new Date(calYear,calMonth,0).getDate();
+  const evts={};
+  const addEv=(ds,name,type,extra)=>{
+    if(!ds)return;
+    const dt=new Date(ds);
+    if(dt.getFullYear()===calYear&&dt.getMonth()===calMonth){
+      const k=dt.getDate();if(!evts[k])evts[k]=[];evts[k].push({name,type,extra:extra||{}});
+    }
+  };
+  entries.forEach(e=>{
+    addEv(e.setsumeikai,e.name,'setsu',{company:e.name,id:e.id,memo:e.memo});
+    (e.internPeriods||[]).forEach(p=>{
+      const lbl=p.label?'('+p.label+')':'';
+      dateRange(p.start,p.end).forEach(d=>addEv(d,e.name+lbl,'intern',{memo:p.memo,deadline:p.deadline,start:p.start,end:p.end,label:p.label,company:e.name,id:e.id}));
+      if(p.deadline)addEv(p.deadline,e.name+(lbl?lbl:'')+'締切','dl',{memo:p.memo,start:p.start,end:p.end,company:e.name,id:e.id});
+    });
+    addEv(e.internDeadline,e.name+'インターン締切','dl',{company:e.name,id:e.id});
+    addEv(e.esDeadline,e.name+' ES締切','dl',{company:e.name,id:e.id});
+    addEv(e.honDeadline,e.name+' 本選考','hondl',{company:e.name,id:e.id});
+    addEv(e.internalDeadline,e.name+' 承諾','accept',{company:e.name,id:e.id});
+    (e.interviews||[]).forEach(iv=>{
+      const ivType=iv.type==='一次'?'interview1':iv.type==='二次'?'interview2':iv.type==='三次'?'interview3':iv.type==='最終'?'interviewf':'interview';
+      addEv(iv.date,e.name+(iv.type?' '+iv.type+'面接':''),ivType,{company:e.name,id:e.id,memo:iv.memo});
+    });
+  });
+  const todayD=now.getDate(),todayM=now.getMonth(),todayY=now.getFullYear();
+  let total=first+last;total+=((7-total%7)%7);
+  let html='';
+  const typeClass={setsu:'ev-setsu',intern:'ev-intern',dl:'ev-dl',interview:'ev-interview',interview1:'ev-interview1',interview2:'ev-interview2',interview3:'ev-interview3',interviewf:'ev-interviewf',hondl:'ev-hondl',accept:'ev-accept'};
+  const typeLabel={setsu:'説',intern:'イン',dl:'締',interview:'面',interview1:'一次',interview2:'二次',interview3:'三次',interviewf:'最終',hondl:'本締',accept:'承諾'};
+  for(let i=0;i<total;i++){
+    let date,isOther=false;const dow=i%7;
+    if(i<first){date=prevLast-first+1+i;isOther=true;}
+    else if(i>=first+last){date=i-first-last+1;isOther=true;}
+    else{date=i-first+1;}
+    const isToday=!isOther&&date===todayD&&calMonth===todayM&&calYear===todayY;
+    const evList=(!isOther&&evts[date])||[];
+    const dowCls=dow===0?' sun':dow===6?' sat':'';
+    const cellEvJson=encodeURIComponent(JSON.stringify(evList));
+    html+=`<div class="cal-cell${isOther?' other':''}${isToday?' today':''}${dowCls}" ${!isOther&&evList.length?'onclick="openDayPopup(event,\''+cellEvJson+'\',\''+calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(date).padStart(2,'0')+'\')" style="cursor:pointer"':''}>
+      <div class="cal-date">${date}</div>
+      ${evList.slice(0,3).map(ev=>'<div class="cal-ev '+(typeClass[ev.type]||'')+'">'+( typeLabel[ev.type]||'')+' '+ev.name+'</div>').join('')}
+      ${evList.length>3?`<div style="font-size:10px;color:#aaa">+${evList.length-3}件</div>`:''}
+    </div>`;
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+}
+
+document.getElementById('new-industry').addEventListener('keydown',e=>{if(e.key==='Enter')addIndustry();});
+document.getElementById('new-status').addEventListener('keydown',e=>{if(e.key==='Enter')addStatus();});
+document.getElementById('search').addEventListener('input',renderTable);
+document.getElementById('filter-status').addEventListener('change',renderTable);
+document.getElementById('filter-industry').addEventListener('change',renderTable);
+
+function exportData(){
+  const data={entries,industries,statuses};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='shukatsu_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+async function importData(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.entries)entries=data.entries;
+      if(data.industries)industries=data.industries;
+      if(data.statuses)statuses=data.statuses;
+      // まずSupabaseに保存
+      if(window.saveToSupabase){
+        await saveToSupabase({entries,industries,statuses});
+      }
+      // localStorageにも保存
+      try{localStorage.setItem('sk6_entries',JSON.stringify(entries));}catch{}
+      try{localStorage.setItem('sk6_industries',JSON.stringify(industries));}catch{}
+      try{localStorage.setItem('sk6_statuses',JSON.stringify(statuses));}catch{}
+      populateFilters();
+      renderTable();
+      alert('インポート完了でヤンス！');
+    }catch(err){
+      alert('エラー: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+function toggleLegend(btn){
+  const box=document.getElementById('cal-legend-box');
+  if(!box)return;
+  if(box.style.display==='none'||!box.style.display){
+    const rect=btn.getBoundingClientRect();
+    box.style.top=(rect.bottom+6)+'px';
+    box.style.right=(window.innerWidth-rect.right)+'px';
+    box.style.display='block';
+  } else {
+    box.style.display='none';
+  }
+}
+document.addEventListener('click',function(e){
+  const box=document.getElementById('cal-legend-box');
+  if(box&&!e.target.closest('#cal-legend-box')&&!e.target.closest('button[onclick^="toggleLegend"]')){
+    box.style.display='none';
+  }
+});
+function openDayPopup(e, evListEncoded, dateStr){
+  e.stopPropagation();
+  const evList = JSON.parse(decodeURIComponent(evListEncoded));
+  const popup = document.getElementById('day-popup');
+  const list = document.getElementById('day-popup-list');
+  const title = document.getElementById('day-popup-title');
+  
+  const d = new Date(dateStr);
+  title.textContent = (d.getMonth()+1)+'月'+d.getDate()+'日の予定';
+  
+  const BADGE_COLORS_MAP={setsu:'#0C447C',intern:'#085041',dl:'#712B13',interview:'#633806',
+    interview1:'#856404',interview2:'#7A3E00',interview3:'#C87800',interviewf:'#C0392B',
+    hondl:'#791F1F',accept:'#534AB7'};
+  const BADGE_BG={setsu:'#E6F1FB',intern:'#E1F5EE',dl:'#FAECE7',interview:'#FAEEDA',
+    interview1:'#FFF3CD',interview2:'#FFD9A0',interview3:'#F0A500',interviewf:'#E8673A',
+    hondl:'#F7C1C1',accept:'#7F77DD'};
+  const BADGE_LABELS={setsu:'説明会',intern:'インターン',dl:'締め切り',interview:'面接',
+    interview1:'一次面接',interview2:'二次面接',interview3:'三次面接',interviewf:'最終面接',
+    hondl:'本選考締切',accept:'内定承諾締切'};
+
+  list.innerHTML = evList.map(ev=>{
+    const color = BADGE_COLORS_MAP[ev.type]||'#444';
+    const bg = BADGE_BG[ev.type]||'#eee';
+    const label = BADGE_LABELS[ev.type]||ev.type;
+    const hasCompany = ev.extra&&ev.extra.id!=null;
+    return `<div class="day-ev-item" onclick="dayEvClick(${JSON.stringify(ev).replace(/'/g,'&#39;')})">
+      <div class="day-ev-dot" style="background:${bg};border:2px solid ${color}"></div>
+      <div style="flex:1">
+        <div class="day-ev-name">${ev.name}</div>
+        <div class="day-ev-type">${label}${hasCompany?' · タップで企業情報へ':''}</div>
+      </div>
+      ${hasCompany?'<span style="color:#7F77DD;font-size:12px">→</span>':''}
+    </div>`;
+  }).join('');
+
+  // Position popup near click
+  const rect = e.target.closest('.cal-cell').getBoundingClientRect();
+  popup.style.top = Math.min(rect.bottom+4, window.innerHeight-320)+'px';
+  popup.style.left = Math.min(rect.left, window.innerWidth-290)+'px';
+  popup.classList.add('open');
+}
+
+function closeDayPopup(){
+  document.getElementById('day-popup').classList.remove('open');
+}
+
+function dayEvClick(ev){
+  closeDayPopup();
+  if(ev.extra&&ev.extra.id!=null){
+    switchTab('list');
+    setTimeout(()=>openDetail(ev.extra.id),100);
+  }
+}
+
+document.addEventListener('click',function(e){
+  const popup=document.getElementById('day-popup');
+  if(popup&&!e.target.closest('#day-popup')&&!e.target.closest('.cal-cell')){
+    closeDayPopup();
+  }
+});
+
+function openCalPopupEncoded(encoded){
+  try{openCalPopup(JSON.parse(decodeURIComponent(encoded)));}catch(e){console.error(e);}
+}
+function openCalPopup(ev){
+  _calPopupId=ev.extra&&ev.extra.id!=null?ev.extra.id:null;
+  const BADGE_LABELS={setsu:'説明会',intern:'インターン',dl:'締め切り',interview:'面接',interview1:'一次面接',interview2:'二次面接',interview3:'三次面接',interviewf:'最終面接',hondl:'本選考締切',accept:'内定承諾締切'};
+  const BADGE_STYLES={setsu:'background:#E6F1FB;color:#0C447C',intern:'background:#E1F5EE;color:#085041',dl:'background:#FAECE7;color:#712B13',interview:'background:#FAEEDA;color:#633806',interview1:'background:#FFF3CD;color:#856404',interview2:'background:#FFD9A0;color:#7A3E00',interview3:'background:#F0A500;color:#fff',interviewf:'background:#E8673A;color:#fff',hondl:'background:#F7C1C1;color:#791F1F',accept:'background:#7F77DD;color:#fff'};
+  document.getElementById('cp-badge').innerHTML='<span class="badge" style="'+( BADGE_STYLES[ev.type]||'')+';border:none">'+( BADGE_LABELS[ev.type]||ev.type)+'</span>';
+  document.getElementById('cp-name').textContent=ev.name;
+  let detail='';
+  if(ev.extra&&ev.extra.start){
+    detail+='期間: '+ev.extra.start;
+    if(ev.extra.end&&ev.extra.end!==ev.extra.start)detail+=' 〜 '+ev.extra.end;
+    detail+='\n';
+  }
+  if(ev.extra&&ev.extra.deadline)detail+='締め切り: '+ev.extra.deadline+'\n';
+  if(ev.extra&&ev.extra.memo)detail+='メモ: '+ev.extra.memo;
+  if(ev.extra&&ev.extra.company)detail=detail||'';
+  document.getElementById('cp-detail').textContent=detail.trim()||'';
+  document.getElementById('cp-goto').style.display=_calPopupId!=null?'block':'none';
+  const pop=document.getElementById('cal-popup');pop.style.display='flex';
+}
+function closeCalPopup(){document.getElementById('cal-popup').style.display='none';}
+function gotoCompany(){
+  if(_calPopupId==null)return;
+  closeCalPopup();
+  switchTab('list');
+  setTimeout(()=>openDetail(_calPopupId),100);
+}
+let _calPopupId=null;
+async function init(){
+  await loadData();
+  populateFilters();
+  renderTable();
+}
+// init is called by onLogin() after Supabase auth</script>
+
+<!-- 日付クリックポップアップ -->
+<div class="day-popup" id="day-popup">
+  <div class="day-popup-header">
+    <span class="day-popup-title" id="day-popup-title"></span>
+    <button class="day-popup-close" onclick="closeDayPopup()">✕</button>
+  </div>
+  <div id="day-popup-list"></div>
+</div>
+
+<!-- 凡例ポップアップ -->
+<div id="cal-legend-box" style="display:none;position:fixed;background:#fff;border:1px solid #dddcd5;border-radius:10px;padding:12px 14px;z-index:3000;box-shadow:0 4px 16px rgba(0,0,0,.12)">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid #B5D4F4;background:#E6F1FB;color:#0C447C">説明会</span>
+    <span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid #9FE1CB;background:#E1F5EE;color:#085041">インターン</span>
+    <span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid #FFDF7E;background:#FFF3CD;color:#856404">一次面接</span>
+    <span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid #FFA733;background:#FFD9A0;color:#7A3E00">二次面接</span>
+    <span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid #C87800;background:#F0A500;color:#fff">三次面接</span>
+    <span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid #C0392B;background:#E8673A;color:#fff">最終面接</span>
+    <span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid #F5C4B3;background:#FAECE7;color:#712B13">インターン締切</span>
+    <span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid #F09595;background:#F7C1C1;color:#791F1F">本選考締切</span>
+    <span style="padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid #534AB7;background:#7F77DD;color:#fff">内定承諾締切</span>
+  </div>
+</div>
+
+<!-- カレンダーイベントポップアップ -->
+<div id="cal-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center;padding:1rem" onclick="if(event.target===this)closeCalPopup()">
+  <div style="background:#fff;border-radius:14px;padding:1.5rem;width:340px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <span id="cp-badge"></span>
+      <button onclick="closeCalPopup()" style="background:none;border:none;cursor:pointer;font-size:18px;color:#aaa">✕</button>
+    </div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:6px" id="cp-name"></div>
+    <div style="font-size:13px;color:#666;margin-bottom:12px;white-space:pre-line" id="cp-detail"></div>
+    <button id="cp-goto" style="width:100%;padding:8px;background:#7F77DD;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500" onclick="gotoCompany()">企業詳細を開く →</button>
+  </div>
+</div>
+
+<!-- ログイン画面 -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <h1>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7F77DD" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      就活管理
+    </h1>
+    <p id="login-desc">メールアドレスでログインしてください</p>
+    <div class="login-form">
+      <input type="email" id="login-email" placeholder="メールアドレス">
+      <input type="password" id="login-password" placeholder="パスワード（6文字以上）">
+      <div class="login-error" id="login-error"></div>
+      <button class="login-btn" onclick="doLogin()">ログイン</button>
+      <div class="login-switch">
+        アカウントをお持ちでない方は <a onclick="toggleSignup()">新規登録</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPA_URL = 'https://actdfhmaeebbuojnabnw.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjdGRmaG1hZWViYnVvam5hYm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1OTgzODksImV4cCI6MjA5NTE3NDM4OX0._BYWtM5zvgxM1bvXZaWh5g_jJqaetJc64eOvoLDM8lQ';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let isSignup = false;
+let currentUser = null;
+
+function toggleSignup(){
+  isSignup = !isSignup;
+  document.getElementById('login-desc').textContent = isSignup ? '新規アカウントを作成します' : 'メールアドレスでログインしてください';
+  document.querySelector('.login-btn').textContent = isSignup ? '新規登録' : 'ログイン';
+  document.querySelector('.login-switch').innerHTML = isSignup ? 'すでにアカウントをお持ちの方は <a onclick="toggleSignup()">ログイン</a>' : 'アカウントをお持ちでない方は <a onclick="toggleSignup()">新規登録</a>';
+  document.getElementById('login-error').textContent = '';
+}
+
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if(!email||!password){ errEl.textContent='メールアドレスとパスワードを入力してください'; return; }
+  if(password.length < 6){ errEl.textContent='パスワードは6文字以上にしてください'; return; }
+  
+  let result;
+  if(isSignup){
+    result = await supa.auth.signUp({ email, password });
+  } else {
+    result = await supa.auth.signInWithPassword({ email, password });
+  }
+  
+  if(result.error){
+    if(result.error.message.includes('Invalid login')){ errEl.textContent='メールアドレスまたはパスワードが違います'; }
+    else if(result.error.message.includes('already registered')){ errEl.textContent='このメールアドレスはすでに登録されています'; }
+    else{ errEl.textContent = result.error.message; }
+    return;
+  }
+  
+  if(isSignup && !result.data.session){
+    errEl.style.color='#085041';
+    errEl.textContent='確認メールを送信しました。メールを確認してください。';
+    return;
+  }
+  
+  currentUser = result.data.user;
+  onLogin(currentUser);
+}
+
+async function doLogout(){
+  await supa.auth.signOut();
+  currentUser = null;
+  document.getElementById('login-screen').style.display='flex';
+  document.querySelector('.app').style.display='none';
+}
+
+async function saveToSupabase(data){
+  if(!currentUser)return;
+  // まず既存レコードを確認
+  const {data:existing} = await supa.from('shukatsu_data').select('id').eq('user_id',currentUser.id).single();
+  let result;
+  if(existing){
+    result = await supa.from('shukatsu_data').update({
+      entries: data.entries,
+      industries: data.industries,
+      statuses: data.statuses,
+      updated_at: new Date().toISOString()
+    }).eq('user_id',currentUser.id);
+  } else {
+    result = await supa.from('shukatsu_data').insert({
+      user_id: currentUser.id,
+      entries: data.entries,
+      industries: data.industries,
+      statuses: data.statuses,
+      updated_at: new Date().toISOString()
+    });
+  }
+  if(result.error) console.error('Supabase save error:', result.error);
+}
+
+async function loadFromSupabase(){
+  if(!currentUser)return null;
+  const { data } = await supa.from('shukatsu_data').select('*').eq('user_id', currentUser.id).single();
+  return data;
+}
+
+function onLogin(user){
+  currentUser = user;
+  document.getElementById('login-screen').style.display='none';
+  document.querySelector('.app').style.display='flex';
+  // Add user bar to topbar
+  const topbar = document.querySelector('.topbar');
+  if(!document.getElementById('user-bar')){
+    const bar = document.createElement('div');
+    bar.className='user-bar';
+    bar.id='user-bar';
+    bar.innerHTML='<span>'+user.email+'</span><button class="btn btn-sm" onclick="doLogout()">ログアウト</button>';
+    topbar.appendChild(bar);
+  }
+  init();
+}
+
+// Check existing session
+(async()=>{
+  const { data } = await supa.auth.getSession();
+  if(data.session){
+    onLogin(data.session.user);
+  } else {
+    document.getElementById('login-screen').style.display='flex';
+    document.querySelector('.app').style.display='none';
+  }
+})();
+
+// Enter key support
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && document.getElementById('login-screen').style.display!=='none'){
+    doLogin();
+  }
+});
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
