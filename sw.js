@@ -1,20 +1,18 @@
-const CACHE = 'shukatsu-v6';
-const FILES = ['/', '/index_3.html', '/manifest.json'];
-
+// Service Worker を完全に無効化
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ));
-  self.clients.claim();
+  // 全キャッシュを削除
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
-  );
+  // キャッシュ使わず毎回ネットワークから取得
+  e.respondWith(fetch(e.request));
 });
